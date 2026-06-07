@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0c0c14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ChordScribe">
+  <meta name="description" content="AI-powered music transcription. Record any song and get lyrics, chords, guitar tab and sheet music instantly.">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="/icons/icon-192.png">
+  <title>ChordScribe — AI Music Transcription</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Martian+Mono:wght@300;400;500;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── TOKENS ─────────────────────────────────────────── */
+    :root {
+      --ink:      #0c0c14;
+      --paper:    #f5f2eb;
+      --cream:    #ede9e0;
+      --warm:     #d4cfc4;
+      --accent:   #c8400a;
+      --accent2:  #1a6b4a;
+      --gold:     #b8962e;
+      --text:     #1a1814;
+      --muted:    #7a7268;
+      --border:   #c8c3b8;
+      --surface:  #faf7f2;
+      --shadow:   rgba(12,12,20,0.12);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html { height: 100%; }
+
+    body {
+      background: var(--paper);
+      color: var(--text);
+      font-family: 'Lora', Georgia, serif;
+      min-height: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Grain texture overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 0.4;
+    }
+
+    /* ── LANDING PAGE ────────────────────────────────────── */
+    #page-landing {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .landing-header {
+      padding: 28px 32px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .wordmark {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+    }
+
+    .wordmark span { color: var(--accent); }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-nav {
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      padding: 8px 16px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.03em;
+    }
+
+    .btn-nav-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .btn-nav-ghost:hover { border-color: var(--text); color: var(--text); }
+
+    .btn-nav-solid {
+      background: var(--ink);
+      border: 1px solid var(--ink);
+      color: var(--paper);
+    }
+
+    .btn-nav-solid:hover { background: var(--accent); border-color: var(--accent); }
+
+    /* Hero */
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px 40px;
+      text-align: center;
+      position: relative;
+    }
+
+    .hero-eyebrow {
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      width: 32px;
+      height: 1px;
+      background: var(--accent);
+      opacity: 0.5;
+    }
+
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(38px, 9vw, 80px);
+      line-height: 0.95;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin-bottom: 24px;
+      max-width: 800px;
+    }
+
+    .hero-title em {
+      font-style: italic;
+      font-family: 'Lora', serif;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 17px;
+      color: var(--muted);
+      line-height: 1.7;
+      max-width: 480px;
+      margin-bottom: 40px;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 56px;
+    }
+
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+      border: none;
+      padding: 16px 32px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.02em;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-primary:hover { background: var(--accent); transform: translateY(-1px); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1.5px solid var(--border);
+      padding: 16px 32px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-outline:hover { border-color: var(--ink); }
+
+    /* Feature strips */
+    .feature-strip {
+      display: flex;
+      gap: 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      width: 100%;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .feature-item {
+      flex: 1;
+      padding: 20px 16px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+
+    .feature-item:last-child { border-right: none; }
+
+    .feature-icon { font-size: 22px; margin-bottom: 8px; }
+
+    .feature-label {
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* Pricing section */
+    .pricing-section {
+      padding: 80px 24px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .section-heading {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 36px;
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .section-sub {
+      text-align: center;
+      color: var(--muted);
+      font-size: 15px;
+      margin-bottom: 48px;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .pricing-card {
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      padding: 32px 28px;
+      background: var(--surface);
+      position: relative;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--accent);
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .pricing-card.featured .pricing-price,
+    .pricing-card.featured .pricing-name { color: var(--paper); }
+    .pricing-card.featured .pricing-desc,
+    .pricing-card.featured .pricing-feature { color: rgba(245,242,235,0.6); }
+    .pricing-card.featured .pricing-feature-yes { color: #7fffd4; }
+
+    .featured-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--accent);
+      color: white;
+      font-family: 'Martian Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+
+    .pricing-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+
+    .pricing-price {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 42px;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .pricing-price sup {
+      font-size: 20px;
+      vertical-align: top;
+      margin-top: 8px;
+    }
+
+    .pricing-desc {
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 24px;
+      letter-spacing: 0.05em;
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 28px;
+    }
+
+    .pricing-feature {
+      font-size: 13px;
+      color: var(--muted);
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      display: flex;
+      gap: 10px;
+    }
+
+    .pricing-card.featured .pricing-feature { border-bottom-color: rgba(255,255,255,0.08); }
+
+    .pricing-feature-yes { color: var(--accent2); font-weight: 600; }
+    .pricing-feature-no { color: var(--warm); }
+
+    .btn-pricing {
+      width: 100%;
+      padding: 14px;
+      border-radius: 3px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-pricing-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text);
+    }
+    .btn-pricing-ghost:hover { border-color: var(--ink); }
+
+    .btn-pricing-accent {
+      background: var(--accent);
+      border: none;
+      color: white;
+    }
+    .btn-pricing-accent:hover { background: #a33208; }
+
+    /* Footer */
+    .landing-footer {
+      border-top: 1px solid var(--border);
+      padding: 24px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── APP PAGES ───────────────────────────────────────── */
+    .page { display: none; min-height: 100vh; flex-direction: column; }
+    .page.active { display: flex; }
+
+    .app-header {
+      background: var(--ink);
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 16px var(--shadow);
+    }
+
+    .app-wordmark {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--paper);
+      letter-spacing: -0.02em;
+    }
+
+    .app-wordmark span { color: var(--accent); }
+
+    .header-credits {
+      margin-left: auto;
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      color: rgba(245,242,235,0.5);
+      letter-spacing: 0.05em;
+    }
+
+    .credits-count {
+      color: var(--gold);
+      font-weight: 700;
+    }
+
+    .app-body {
+      flex: 1;
+      padding: 24px 20px 100px;
+      max-width: 700px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* ── INPUT TABS ──────────────────────────────────────── */
+    .input-tabs {
+      display: flex;
+      background: var(--cream);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      padding: 4px;
+      margin-bottom: 20px;
+      gap: 4px;
+    }
+
+    .input-tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      border-radius: 2px;
+      color: var(--muted);
+      transition: all 0.2s;
+      border: none;
+      background: transparent;
+    }
+
+    .input-tab.active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .input-tab-panel { display: none; }
+    .input-tab-panel.active { display: block; }
+
+    /* ── WAVEFORM ────────────────────────────────────────── */
+    .waveform-wrap {
+      background: var(--ink);
+      border-radius: 4px;
+      height: 72px;
+      margin-bottom: 16px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    #waveCanvas { width: 100%; height: 100%; }
+
+    .waveform-idle-text {
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      color: rgba(245,242,235,0.3);
+      letter-spacing: 0.1em;
+      position: absolute;
+    }
+
+    /* ── RECORD CONTROLS ─────────────────────────────────── */
+    .record-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      margin-bottom: 16px;
+    }
+
+    .rec-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: var(--accent);
+      color: white;
+    }
+
+    .rec-btn:hover { transform: scale(1.06); }
+
+    .rec-btn.recording {
+      background: #dc2626;
+      animation: recpulse 1.4s infinite;
+    }
+
+    @keyframes recpulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+      50% { box-shadow: 0 0 0 14px rgba(220,38,38,0); }
+    }
+
+    .rec-info { flex: 1; }
+
+    .rec-status {
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .rec-hint { font-size: 12px; color: var(--muted); }
+
+    .rec-timer {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 26px;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+
+    /* ── UPLOAD ──────────────────────────────────────────── */
+    .upload-drop {
+      border: 2px dashed var(--border);
+      border-radius: 4px;
+      padding: 44px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      background: var(--surface);
+      margin-bottom: 16px;
+    }
+
+    .upload-drop:hover, .upload-drop.over {
+      border-color: var(--accent);
+      background: rgba(200,64,10,0.03);
+    }
+
+    .upload-drop input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon { font-size: 32px; margin-bottom: 10px; }
+
+    .upload-label {
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .upload-formats {
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .file-selected-bar {
+      display: none;
+      background: rgba(26,107,74,0.08);
+      border: 1px solid rgba(26,107,74,0.3);
+      border-radius: 3px;
+      padding: 10px 14px;
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      color: var(--accent2);
+      margin-bottom: 16px;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── OUTPUT OPTIONS ──────────────────────────────────── */
+    .section-label {
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .output-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .chip {
+      padding: 7px 14px;
+      border-radius: 2px;
+      border: 1.5px solid var(--border);
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--muted);
+      background: var(--surface);
+      user-select: none;
+    }
+
+    .chip.on {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--paper);
+    }
+
+    /* ── ANALYSE BTN ─────────────────────────────────────── */
+    .btn-analyse {
+      width: 100%;
+      padding: 18px;
+      background: var(--ink);
+      color: var(--paper);
+      border: none;
+      border-radius: 3px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-analyse:hover:not(:disabled) {
+      background: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .btn-analyse:disabled {
+      background: var(--border);
+      color: var(--warm);
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── PROCESSING ──────────────────────────────────────── */
+    #page-processing {
+      background: var(--ink);
+      color: var(--paper);
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px 24px;
+    }
+
+    .proc-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 42px;
+      letter-spacing: -0.02em;
+      color: var(--paper);
+      margin-bottom: 6px;
+    }
+
+    .proc-sub {
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      color: rgba(245,242,235,0.4);
+      letter-spacing: 0.1em;
+      margin-bottom: 48px;
+    }
+
+    /* Spinning vinyl */
+    .vinyl {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: conic-gradient(
+        #1a1a2e 0deg, #0f3460 60deg, #16213e 120deg,
+        #1a1a2e 180deg, #0f3460 240deg, #16213e 300deg, #1a1a2e 360deg
+      );
+      margin: 0 auto 48px;
+      position: relative;
+      animation: spin 3s linear infinite;
+    }
+
+    .vinyl::before {
+      content: '';
+      position: absolute;
+      inset: 16px;
+      border-radius: 50%;
+      background: var(--ink);
+      border: 2px solid #2a2a3e;
+    }
+
+    .vinyl::after {
+      content: '';
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .proc-steps {
+      list-style: none;
+      text-align: left;
+      max-width: 340px;
+      margin: 0 auto 40px;
+    }
+
+    .proc-step {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(245,242,235,0.08);
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      color: rgba(245,242,235,0.35);
+      letter-spacing: 0.03em;
+      transition: color 0.4s;
+    }
+
+    .proc-step.active { color: var(--paper); }
+    .proc-step.done { color: #7fffd4; }
+
+    .proc-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(245,242,235,0.2);
+      flex-shrink: 0;
+      transition: background 0.4s;
+    }
+
+    .proc-step.active .proc-dot {
+      background: var(--gold);
+      animation: dotpulse 0.8s infinite;
+    }
+
+    .proc-step.done .proc-dot { background: #7fffd4; }
+
+    @keyframes dotpulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .proc-bar-wrap {
+      max-width: 340px;
+      margin: 0 auto;
+      background: rgba(245,242,235,0.1);
+      height: 2px;
+      border-radius: 1px;
+      overflow: hidden;
+    }
+
+    .proc-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), var(--gold));
+      width: 0%;
+      transition: width 0.5s ease;
+      border-radius: 1px;
+    }
+
+    /* ── RESULTS PAGE ────────────────────────────────────── */
+    #page-results .app-body { padding-bottom: 40px; }
+
+    .song-banner {
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 4px;
+      padding: 20px 20px 16px;
+      margin-bottom: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .song-banner::before {
+      content: '♪';
+      position: absolute;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 80px;
+      opacity: 0.05;
+      font-family: serif;
+    }
+
+    .song-title-display {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .song-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .meta-pill {
+      background: rgba(245,242,235,0.08);
+      border: 1px solid rgba(245,242,235,0.12);
+      border-radius: 2px;
+      padding: 4px 10px;
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    .meta-pill strong { color: var(--gold); }
+
+    /* Result tabs */
+    .result-tab-bar {
+      display: flex;
+      border-bottom: 1.5px solid var(--border);
+      margin-bottom: 20px;
+      gap: 0;
+      overflow-x: auto;
+    }
+
+    .result-tab {
+      padding: 10px 18px;
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      color: var(--muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1.5px;
+      white-space: nowrap;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      transition: all 0.15s;
+    }
+
+    .result-tab:hover { color: var(--text); }
+    .result-tab.on { color: var(--accent); border-bottom-color: var(--accent); }
+
+    .result-pane { display: none; }
+    .result-pane.on { display: block; animation: fadeUp 0.25s ease; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Lyrics pane */
+    .lyrics-sheet {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      padding: 28px 24px;
+      font-family: 'Lora', serif;
+      line-height: 1;
+    }
+
+    .lyrics-section-label {
+      display: block;
+      font-family: 'Martian Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 24px 0 12px;
+    }
+
+    .lyrics-section-label:first-child { margin-top: 0; }
+
+    .lyric-row {
+      display: block;
+      margin-bottom: 20px;
+    }
+
+    .chord-above {
+      display: flex;
+      gap: 0;
+      height: 22px;
+      position: relative;
+      margin-bottom: 2px;
+    }
+
+    .chord-above-item {
+      font-family: 'Martian Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      position: absolute;
+    }
+
+    .lyric-words {
+      font-size: 16px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* Chord chart */
+    .chord-diagram-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 14px;
+    }
+
+    .chord-diagram {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 10px 10px;
+      text-align: center;
+    }
+
+    .chord-diag-name {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 24px;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 10px;
+    }
+
+    .fret-grid {
+      width: 72px;
+      margin: 0 auto 8px;
+      border-left: 2px solid var(--ink);
+    }
+
+    .fret-row-diag {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .fret-row-diag:first-child { border-top: 3px solid var(--ink); }
+
+    .fret-cell {
+      flex: 1;
+      height: 13px;
+      border-right: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fret-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .chord-diag-type {
+      font-family: 'Martian Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    /* Tab pane */
+    .tab-sheet {
+      background: var(--ink);
+      border-radius: 4px;
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    .tab-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 3px;
+    }
+
+    .tab-str-label {
+      font-family: 'Martian Mono', monospace;
+      font-size: 12px;
+      color: var(--gold);
+      width: 20px;
+      flex-shrink: 0;
+    }
+
+    .tab-str-content {
+      font-family: 'Martian Mono', monospace;
+      font-size: 12px;
+      color: var(--paper);
+      white-space: pre;
+      letter-spacing: 0.05em;
+    }
+
+    .tab-note {
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      color: rgba(245,242,235,0.4);
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+
+    /* Sheet music */
+    .sheet-music-wrap {
+      background: white;
+      border-radius: 4px;
+      padding: 20px;
+      overflow-x: auto;
+    }
+
+    #sheetCanvas {
+      display: block;
+      width: 100%;
+      min-width: 600px;
+    }
+
+    /* Actions */
+    .result-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 24px;
+    }
+
+    .btn-action {
+      flex: 1;
+      min-width: 140px;
+      padding: 12px;
+      border-radius: 3px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .btn-action-outline {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-action-outline:hover { border-color: var(--ink); }
+
+    .btn-action-solid {
+      background: var(--ink);
+      border: 1.5px solid var(--ink);
+      color: var(--paper);
+    }
+
+    .btn-action-solid:hover { background: var(--accent); border-color: var(--accent); }
+
+    /* ── PAYWALL PAGE ─────────────────────────────────────── */
+    #page-paywall {
+      background: var(--ink);
+      color: var(--paper);
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px;
+      text-align: center;
+    }
+
+    .paywall-eyebrow {
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .paywall-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 36px;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .paywall-sub {
+      color: rgba(245,242,235,0.5);
+      font-size: 15px;
+      max-width: 380px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+
+    .paywall-price-box {
+      background: rgba(245,242,235,0.05);
+      border: 1px solid rgba(245,242,235,0.12);
+      border-radius: 4px;
+      padding: 32px;
+      max-width: 360px;
+      margin: 0 auto 24px;
+    }
+
+    .paywall-amount {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 64px;
+      letter-spacing: -0.03em;
+      color: var(--paper);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .paywall-amount sup {
+      font-size: 28px;
+      vertical-align: top;
+      margin-top: 12px;
+    }
+
+    .paywall-once {
+      font-family: 'Martian Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: rgba(245,242,235,0.4);
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+
+    .paywall-perks {
+      list-style: none;
+      text-align: left;
+      margin-bottom: 28px;
+    }
+
+    .paywall-perk {
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      color: rgba(245,242,235,0.65);
+      padding: 7px 0;
+      border-bottom: 1px solid rgba(245,242,235,0.06);
+      display: flex;
+      gap: 10px;
+    }
+
+    .perk-check { color: #7fffd4; }
+
+    .btn-pay {
+      width: 100%;
+      padding: 18px;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 3px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 17px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-pay:hover { background: #a33208; transform: translateY(-1px); }
+
+    .paywall-back {
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      color: rgba(245,242,235,0.35);
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      background: none;
+      border: none;
+      margin-top: 16px;
+    }
+
+    .paywall-back:hover { color: rgba(245,242,235,0.7); }
+
+    /* ── TOAST ───────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--ink);
+      color: var(--paper);
+      padding: 12px 24px;
+      border-radius: 3px;
+      font-family: 'Martian Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      z-index: 9000;
+      transition: transform 0.3s ease;
+      white-space: nowrap;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+    }
+
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* ── UTILS ───────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      .feature-strip { flex-wrap: wrap; }
+      .feature-item { min-width: 50%; }
+      .hero-title { font-size: 36px; }
+      .chord-diagram-grid { grid-template-columns: repeat(3,1fr); }
+    }
+
+    @media print {
+      #page-landing, #page-app, #page-processing, #page-paywall { display: none !important; }
+      #page-results { display: block !important; background: white !important; color: black !important; }
+      .app-header, .result-actions, .result-tab-bar { display: none !important; }
+      .result-pane { display: block !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     LANDING PAGE
+═══════════════════════════════════════════════════════ -->
+<div id="page-landing" class="page active">
+  <div class="landing-header">
+    <div class="wordmark">Chord<span>Scribe</span></div>
+    <div class="header-nav">
+      <button class="btn-nav btn-nav-ghost" onclick="showPage('app')">Sign in</button>
+      <button class="btn-nav btn-nav-solid" onclick="showPage('app')">Try Free</button>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="hero-eyebrow">AI Music Transcription</div>
+    <h1 class="hero-title">
+      Hear any song.<br>
+      <em>Know every note.</em>
+    </h1>
+    <p class="hero-sub">
+      Record a song, upload a track, or hum a melody — ChordScribe gives you lyrics, chords, guitar tab, bass tab, and sheet music in seconds.
+    </p>
+    <div class="hero-cta-group">
+      <button class="btn-primary" onclick="showPage('app')">
+        🎙️ Start Transcribing
+      </button>
+      <button class="btn-outline" onclick="scrollToPricing()">See Pricing</button>
+    </div>
+
+    <div class="feature-strip">
+      <div class="feature-item">
+        <div class="feature-icon">🎙️</div>
+        <div class="feature-label">Record live<br>via mic</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📁</div>
+        <div class="feature-label">Upload MP3<br>MP4 WAV</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📝</div>
+        <div class="feature-label">Lyrics +<br>chords</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🎸</div>
+        <div class="feature-label">Guitar &<br>bass tab</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🎼</div>
+        <div class="feature-label">Sheet<br>music</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pricing-section" id="pricing-section">
+    <h2 class="section-heading">Simple Pricing</h2>
+    <p class="section-sub">No subscription. Pay once, own it forever.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-name">Free</div>
+        <div class="pricing-price"><sup>£</sup>0</div>
+        <div class="pricing-desc">NO CARD REQUIRED</div>
+        <ul class="pricing-features">
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> 1 free analysis</li>
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> Lyrics + chords</li>
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> Record or upload</li>
+          <li class="pricing-feature"><span class="pricing-feature-no">—</span> Guitar & bass tab</li>
+          <li class="pricing-feature"><span class="pricing-feature-no">—</span> Sheet music export</li>
+          <li class="pricing-feature"><span class="pricing-feature-no">—</span> PDF download</li>
+        </ul>
+        <button class="btn-pricing btn-pricing-ghost" onclick="showPage('app')">Start Free</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="featured-badge">MOST POPULAR</div>
+        <div class="pricing-name">Lifetime</div>
+        <div class="pricing-price"><sup>£</sup>4.99</div>
+        <div class="pricing-desc">ONE-TIME PAYMENT · FOREVER</div>
+        <ul class="pricing-features">
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> Unlimited analyses</li>
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> Lyrics + chords</li>
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> Guitar & bass tab</li>
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> Piano notation</li>
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> Sheet music export</li>
+          <li class="pricing-feature"><span class="pricing-feature-yes">✓</span> PDF download</li>
+        </ul>
+        <button class="btn-pricing btn-pricing-accent" onclick="showPage('paywall')">Get Lifetime Access →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="landing-footer">
+    <span>© 2025 ChordScribe</span>
+    <span>Built with AI · Powered by Whisper &amp; Basic Pitch</span>
+    <span>contact@chordscribe.app</span>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     APP PAGE
+═══════════════════════════════════════════════════════ -->
+<div id="page-app" class="page">
+  <div class="app-header">
+    <div class="app-wordmark">Chord<span>Scribe</span></div>
+    <div class="header-credits">
+      <span id="credits-label">Free analyses left: </span>
+      <span class="credits-count" id="credits-count">1</span>
+    </div>
+  </div>
+  <div class="app-body">
+
+    <!-- Input mode tabs -->
+    <div class="input-tabs">
+      <button class="input-tab active" onclick="switchInputTab('record', this)">🎙️ Record</button>
+      <button class="input-tab" onclick="switchInputTab('upload', this)">📁 Upload</button>
+    </div>
+
+    <!-- Record panel -->
+    <div class="input-tab-panel active" id="tab-record">
+      <div class="waveform-wrap">
+        <canvas id="waveCanvas"></canvas>
+        <div class="waveform-idle-text" id="wave-idle">— press record to begin —</div>
+      </div>
+      <div class="record-row">
+        <button class="rec-btn" id="rec-btn" onclick="toggleRecord()">🎙️</button>
+        <div class="rec-info">
+          <div class="rec-status" id="rec-status">READY TO RECORD</div>
+          <div class="rec-hint" id="rec-hint">Play music near your phone mic</div>
+        </div>
+        <div class="rec-timer" id="rec-timer">0:00</div>
+      </div>
+    </div>
+
+    <!-- Upload panel -->
+    <div class="input-tab-panel" id="tab-upload">
+      <div class="upload-drop" id="upload-drop">
+        <input type="file" accept="audio/*,video/*" id="file-input" onchange="handleFile(event)">
+        <div class="upload-icon">🎵</div>
+        <div class="upload-label">Drop audio here or tap to browse</div>
+        <div class="upload-formats">MP3 · WAV · M4A · OGG · MP4 · WEBM</div>
+      </div>
+      <div class="file-selected-bar" id="file-bar">
+        <span>✓</span>
+        <span id="file-name-display">—</span>
+      </div>
+    </div>
+
+    <!-- Output options -->
+    <div class="section-label">What do you want?</div>
+    <div class="output-chips">
+      <div class="chip on" data-out="lyrics" onclick="toggleChip(this)">📝 Lyrics</div>
+      <div class="chip on" data-out="chords" onclick="toggleChip(this)">🎸 Chords</div>
+      <div class="chip on" data-out="tab" onclick="toggleChip(this)">Tab</div>
+      <div class="chip" data-out="bass" onclick="toggleChip(this)">Bass Tab</div>
+      <div class="chip" data-out="piano" onclick="toggleChip(this)">🎹 Piano</div>
+      <div class="chip" data-out="sheet" onclick="toggleChip(this)">🎼 Sheet Music</div>
+    </div>
+
+    <button class="btn-analyse" id="btn-analyse" disabled onclick="startAnalysis()">
+      Analyse Music →
+    </button>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PROCESSING PAGE
+═══════════════════════════════════════════════════════ -->
+<div id="page-processing" class="page">
+  <div class="vinyl" id="vinyl"></div>
+  <div class="proc-title">Analysing</div>
+  <div class="proc-sub" id="proc-sub">Uploading audio...</div>
+  <ul class="proc-steps" id="proc-steps">
+    <li class="proc-step" data-i="0"><div class="proc-dot"></div>Separating audio tracks</li>
+    <li class="proc-step" data-i="1"><div class="proc-dot"></div>Transcribing lyrics</li>
+    <li class="proc-step" data-i="2"><div class="proc-dot"></div>Detecting key &amp; tempo</li>
+    <li class="proc-step" data-i="3"><div class="proc-dot"></div>Identifying chords</li>
+    <li class="proc-step" data-i="4"><div class="proc-dot"></div>Generating tablature</li>
+    <li class="proc-step" data-i="5"><div class="proc-dot"></div>Building sheet music</li>
+  </ul>
+  <div class="proc-bar-wrap">
+    <div class="proc-bar" id="proc-bar"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     RESULTS PAGE
+═══════════════════════════════════════════════════════ -->
+<div id="page-results" class="page">
+  <div class="app-header">
+    <div class="app-wordmark">Chord<span>Scribe</span></div>
+    <button onclick="showPage('app')" style="margin-left:auto;background:none;border:none;color:rgba(245,242,235,0.5);font-family:'Martian Mono',monospace;font-size:11px;cursor:pointer;letter-spacing:0.05em;">← New</button>
+  </div>
+  <div class="app-body">
+
+    <div class="song-banner" id="song-banner">
+      <div class="song-title-display" id="result-title">Analysed Track</div>
+      <div class="song-meta" id="song-meta"></div>
+    </div>
+
+    <div class="result-tab-bar">
+      <button class="result-tab on" onclick="switchResultTab('lyrics',this)">Lyrics + Chords</button>
+      <button class="result-tab" onclick="switchResultTab('chart',this)">Chord Chart</button>
+      <button class="result-tab" onclick="switchResultTab('tab',this)">Guitar Tab</button>
+      <button class="result-tab" onclick="switchResultTab('sheet',this)">Sheet Music</button>
+    </div>
+
+    <div class="result-pane on" id="pane-lyrics">
+      <div class="lyrics-sheet" id="lyrics-output"></div>
+    </div>
+
+    <div class="result-pane" id="pane-chart">
+      <div class="chord-diagram-grid" id="chord-chart-output"></div>
+    </div>
+
+    <div class="result-pane" id="pane-tab">
+      <div class="tab-sheet" id="tab-output"></div>
+    </div>
+
+    <div class="result-pane" id="pane-sheet">
+      <div class="sheet-music-wrap">
+        <canvas id="sheetCanvas" width="700" height="320"></canvas>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn-action btn-action-outline" onclick="exportPDF()">⬇ Export PDF</button>
+      <button class="btn-action btn-action-solid" onclick="showPage('app')">+ Analyse Another</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PAYWALL PAGE
+═══════════════════════════════════════════════════════ -->
+<div id="page-paywall" class="page">
+  <div>
+    <div class="paywall-eyebrow">One-Time Unlock</div>
+    <h2 class="paywall-title">Unlimited Access</h2>
+    <p class="paywall-sub">You've used your free analysis. Unlock everything forever for a single payment.</p>
+
+    <div class="paywall-price-box">
+      <div class="paywall-amount"><sup>£</sup>4.99</div>
+      <div class="paywall-once">One-time payment · No subscription</div>
+      <ul class="paywall-perks">
+        <li class="paywall-perk"><span class="perk-check">✓</span> Unlimited song analyses</li>
+        <li class="paywall-perk"><span class="perk-check">✓</span> Lyrics, chords, guitar &amp; bass tab</li>
+        <li class="paywall-perk"><span class="perk-check">✓</span> Piano notation</li>
+        <li class="paywall-perk"><span class="perk-check">✓</span> Sheet music &amp; PDF export</li>
+        <li class="paywall-perk"><span class="perk-check">✓</span> Lifetime updates</li>
+      </ul>
+      <button class="btn-pay" id="btn-pay" onclick="handlePayment()">
+        Pay £4.99 — Unlock Forever
+      </button>
+    </div>
+    <button class="paywall-back" onclick="showPage('landing')">← Back to home</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
